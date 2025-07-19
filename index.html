@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEMOMU - Mini Games Hub</title>
+    <link rel="stylesheet" href="memomu.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="700"></canvas>
+        <div id="ui">
+            <!-- UI elements will be created dynamically -->
+        </div>
+    </div>
+    
+    <!-- Audio elements for sounds -->
+    <div id="audioContainer" style="display: none;">
+        <audio id="backgroundMusic" loop>
+            <source src="assets/MEMOMU.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="yupiSound"><source src="assets/yupi.mp3" type="audio/mpeg"></audio>
+        <audio id="kukuSound"><source src="assets/kuku.mp3" type="audio/mpeg"></audio>
+        <audio id="buuuuSound"><source src="assets/buuuu.mp3" type="audio/mpeg"></audio>
+        
+        <!-- Note sounds for music memory mode -->
+        <audio id="note1"><source src="assets/note1.mp3" type="audio/mpeg"></audio>
+        <audio id="note2"><source src="assets/note2.mp3" type="audio/mpeg"></audio>
+        <audio id="note3"><source src="assets/note3.mp3" type="audio/mpeg"></audio>
+        <audio id="note4"><source src="assets/note4.mp3" type="audio/mpeg"></audio>
+        <audio id="note5"><source src="assets/note5.mp3" type="audio/mpeg"></audio>
+        <audio id="note6"><source src="assets/note6.mp3" type="audio/mpeg"></audio>
+        <audio id="note7"><source src="assets/note7.mp3" type="audio/mpeg"></audio>
+        <audio id="note8"><source src="assets/note8.mp3" type="audio/mpeg"></audio>
+    </div>
+
+    <script src="memomu.js"></script>
+</body>
+</html>
