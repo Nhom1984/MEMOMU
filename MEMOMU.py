@@ -33,7 +33,7 @@ def load_sound(fn):
     path = f"assets/{fn}"
     return pygame.mixer.Sound(path) if os.path.exists(path) else None
 
-memomu_img = load_img("MEMOMU1.png", (int(550*1.25), int(275*1.25)))
+memomu_img = load_img("MEMOMU1.png", (550, 275))
 images = [load_img(f"image{i}.png") for i in range(1,13)]
 monluck_imgs = [load_img(f"image{i}.png", (90,90)) for i in range(1,34)]
 monad_img = load_img("monad.png", (90,90))
@@ -548,18 +548,16 @@ class Game:
         W,H=WIDTH,HEIGHT
         mode_y = 210 + 85  # move buttons down by 85px (3cm)
         mode_gap = 55
-        # Make buttons 20% smaller: 220*0.8=176, 180*0.8=144, 56*0.8=45
         mode_btns = [
-            Button("MUSIC MEMORY",W//2,mode_y, (176,45), F),
-            Button("MEMORY",W//2,mode_y+mode_gap, (144,45), F),
-            Button("MONLUCK",W//2,mode_y+2*mode_gap, (144,45), F),
-            Button("BATTLE",W//2,mode_y+3*mode_gap, (144,45), F),
+            Button("MUSIC MEMORY",W//2,mode_y, (220,56), F),
+            Button("MEMORY",W//2,mode_y+mode_gap, (180,56), F),
+            Button("MONLUCK",W//2,mode_y+2*mode_gap, (180,56), F),
+            Button("BATTLE",W//2,mode_y+3*mode_gap, (180,56), F),
             Button("SOUND",W-101,51),  # Sound button stays in top right
-            Button("BACK",W//2,mode_y+4*mode_gap+20),
-            Button("QUIT",W//2,mode_y+4*mode_gap+20+55, (144,45), F)  # Add QUIT button under BATTLE
+            Button("BACK",W//2,mode_y+4*mode_gap+20)
         ]
         return {
-            "menu": [Button("NEW GAME",W//2,425+71,(325,66),F_BIG),Button("SOUND",W-101,51),Button("QUIT",W//2,504+71,(200,60),F_BIG)],
+            "menu": [Button("NEW GAME",W//2,425,(325,66),F_BIG),Button("SOUND",W-101,51),Button("QUIT",W//2,504,(200,60),F_BIG)],
             "mode": mode_btns,
             "game_gotit":[Button("GOT IT",W//2,500)],
             "memory_start":[Button("GO",W//2,HEIGHT//2,(100,50)),Button("QUIT",W//2,HEIGHT//2+75,(100,44))],
@@ -650,7 +648,7 @@ class Game:
         screen.fill(COLS['blk'])
 
         if s=="menu":
-            screen.blit(memomu_img, (WIDTH//2-275+23,50))
+            screen.blit(memomu_img, (WIDTH//2-275,50))
             [b.draw() for b in self.buttons["menu"]]
             Button("CREDITS",WIDTH-95,HEIGHT-40,(150,50)).draw()
             txt = "SOUND OFF" if not self.music_playing else "SOUND ON"
@@ -658,10 +656,7 @@ class Game:
 
         elif s=="mode":
             # Show memomu image as in the main menu
-            screen.blit(memomu_img, (WIDTH//2-275+23,50))
-            # Add "Choose game mode" text
-            choose_text = F_MED.render("Choose game mode", 1, COLS['lpink'])
-            screen.blit(choose_text, choose_text.get_rect(center=(WIDTH//2, 180)))
+            screen.blit(memomu_img, (WIDTH//2-275,50))
             # Draw all mode buttons, which are moved down by 85px
             for b in self.buttons["mode"]:
                 b.draw()
@@ -701,9 +696,6 @@ class Game:
             screen.blit(F.render(f"Round: {self.round+1}/13",1,COLS['pink']),(10,40))
             # No pink table for QUIT in guessing phase, just render button
             if s=="memory_phase":
-                # Show "listen and remember" message
-                t=pygame.font.SysFont("arial",34).render("listen and remember",1,COLS['lpink'])
-                screen.blit(t,t.get_rect(center=(WIDTH//2,66)))
                 self.buttons["memory_phase"][0].draw()
                 self.buttons["mem_guess"][0].draw()  # QUIT button always visible, works any time
             elif s=="deceiving_phase":
@@ -711,7 +703,7 @@ class Game:
                 screen.blit(t,t.get_rect(center=(WIDTH//2,66)))
                 self.buttons["mem_guess"][0].draw()
             elif s=="guessing_phase":
-                t=pygame.font.SysFont("arial",34).render("Play now!",1,COLS['lpink']); screen.blit(t,t.get_rect(center=(WIDTH//2,66)))
+                t=pygame.font.SysFont("arial",34).render("GMONAD!",1,COLS['lpink']); screen.blit(t,t.get_rect(center=(WIDTH//2,66)))
                 tlim=20+self.round*3; left=max(0,tlim-(time.time()-self.timer))
                 pygame.draw.rect(screen,COLS['bg'],(WIDTH-210,100,200,50))
                 pygame.draw.rect(screen,COLS['pink'],(WIDTH-210,100,int(200*(left/tlim)),50))
@@ -796,7 +788,6 @@ class Game:
                 elif self.music_paused: unpause_music(); self.music_playing = True; self.music_paused = False
                 else: pause_music(); self.music_playing = False; self.music_paused = True
             elif self.buttons["mode"][5].hit(pos): self.state="menu"; self.ensure_music_state()
-            elif self.buttons["mode"][6].hit(pos): stop_music(); pygame.quit(); exit()  # New QUIT button
         elif s=="music_mem_rules":
             if self.buttons["game_gotit"][0].hit(pos):
                 self.music_playing = False; self.music_paused = True; pause_music()
@@ -811,33 +802,13 @@ class Game:
                 self.setup_monluck()
         elif s=="memory_phase":
             if self.buttons["memory_phase"][0].hit(pos):
-                # First show blank tiles immediately
-                for t in self.tiles: 
-                    t.vis = False
-                self.draw()
-                pygame.display.flip()
-                time.sleep(0.5)
-                
-                # Then show the message and tiles
                 times = 1 if self.round+1 <= 3 else 2 if 4 <= self.round+1 <= 8 else 3
-                for play_count in range(times):
+                for _ in range(times):
                     for imgidx in self.music_img_seq:
-                        # Show tile and play sound simultaneously
-                        for t in self.tiles: 
-                            t.vis = t.idx==imgidx
-                        # Play sound exactly when tile shows
-                        tile_to_play = next((t for t in self.tiles if t.vis), None)
-                        if tile_to_play:
-                            tile_to_play.play_note()
-                        self.draw()
-                        pygame.display.flip()
-                        time.sleep(0.5)
-                        # Hide tile
-                        for t in self.tiles: 
-                            t.vis = False
-                        self.draw()
-                        pygame.display.flip()
-                        time.sleep(0.1)
+                        for t in self.tiles: t.vis = t.idx==imgidx
+                        if any(t.vis for t in self.tiles): next(t for t in self.tiles if t.vis).play_note()
+                        self.draw(); pygame.display.flip(); time.sleep(0.5)
+                        for t in self.tiles: t.vis=False
                     time.sleep(0.5)
                 self.state="deceiving_phase"
                 self.deception_times = times
@@ -858,30 +829,15 @@ class Game:
                 if self.deception_played < self.deception_times:
                     if time.time() - self.deception_play_anim > 0.5:
                         for imgidx in self.deception_img_seq:
-                            # Show tile and play sound simultaneously
-                            for t in self.tiles: 
-                                t.vis = t.idx==imgidx
-                            # Play sound exactly when tile shows
-                            tile_to_play = next((t for t in self.tiles if t.vis), None)
-                            if tile_to_play:
-                                tile_to_play.play_note()
-                            self.draw()
-                            pygame.display.flip()
-                            time.sleep(0.5)
-                            # Hide tile
-                            for t in self.tiles: 
-                                t.vis = False
-                            self.draw()
-                            pygame.display.flip()
-                            time.sleep(0.1)
+                            for t in self.tiles: t.vis = t.idx==imgidx
+                            if any(t.vis for t in self.tiles): next(t for t in self.tiles if t.vis).play_note()
+                            self.draw(); pygame.display.flip(); time.sleep(0.5)
+                            for t in self.tiles: t.vis=False
                         time.sleep(0.5)
                         self.deception_played += 1
                         self.deception_play_anim = time.time()
                 else:
-                    self.state="guessing_phase"
-                    # Show all tiles for guessing phase
-                    for t in self.tiles: 
-                        t.vis = True
+                    self.state="guessing_phase"; [t for t in self.tiles if setattr(t,"vis",True)]
                     self.music_playing = False; self.music_paused = True; pause_music()
                     self.timer=time.time(); self.guess=0
         elif s=="guessing_phase":
