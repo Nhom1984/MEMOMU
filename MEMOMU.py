@@ -565,7 +565,8 @@ class Game:
             "memory_phase":[Button("PLAY",W//2,540)],
             "monluck_start":[Button("START",W//2,500)],
             "monluck_result":[Button("AGAIN",W//2-100,450+23,(100,50)),Button("MENU",W//2+100,450+23,(100,50)),Button("QUIT",WIDTH//2,HEIGHT-50,(130,44))],
-            "score_table":[Button("RESTART",W//2-150,HEIGHT//2+226,(100,50)),Button("MENU",W//2,HEIGHT//2+226,(100,50)),Button("QUIT",W//2+150,HEIGHT//2+226,(100,50))]
+            "score_table":[Button("RESTART",W//2-150,HEIGHT//2+226,(100,50)),Button("MENU",W//2,HEIGHT//2+226,(100,50)),Button("QUIT",W//2+150,HEIGHT//2+226,(100,50))],
+            "music_game_over":[Button("PLAY AGAIN",W//2-100,HEIGHT//2+50,(180,60),F_BIG),Button("QUIT",W//2+100,HEIGHT//2+50,(120,60),F_BIG)]
         }
 
     def reset(self):
@@ -763,6 +764,41 @@ class Game:
             screen.blit(sf.render(f"Total: {sum(self.scores)} pts",1,COLS['bg']),(x+14,250+h-22))
             [b.draw() for b in self.buttons["score_table"]]
 
+        elif s=="music_game_over":
+            # Draw the background game state but dimmed
+            screen.fill(COLS['blk'])
+            screen.blit(F.render(f"Score: {self.score}",1,COLS['pink']),(10,10))
+            screen.blit(F.render(f"Round: {self.round+1}/13",1,COLS['pink']),(10,40))
+            [t.update() or t.draw() for t in self.tiles]
+            self.vkb.draw()
+            
+            # Draw pink overlay
+            overlay = pygame.Surface((WIDTH, HEIGHT))
+            overlay.set_alpha(180)  # Semi-transparent
+            overlay.fill(COLS['pink'])
+            screen.blit(overlay, (0, 0))
+            
+            # Draw game over box
+            box_width, box_height = 400, 250
+            box_x = WIDTH//2 - box_width//2
+            box_y = HEIGHT//2 - box_height//2
+            box_rect = pygame.Rect(box_x, box_y, box_width, box_height)
+            pygame.draw.rect(screen, COLS['pink'], box_rect, border_radius=20)
+            pygame.draw.rect(screen, COLS['blk'], box_rect, width=4, border_radius=20)
+            
+            # Draw game over text
+            game_over_text = F_BIG.render("GAME OVER!", 1, COLS['blk'])
+            game_over_rect = game_over_text.get_rect(center=(WIDTH//2, HEIGHT//2 - 60))
+            screen.blit(game_over_text, game_over_rect)
+            
+            # Draw score
+            score_text = F_MED.render(f"Score: {self.score}", 1, COLS['blk'])
+            score_rect = score_text.get_rect(center=(WIDTH//2, HEIGHT//2 - 20))
+            screen.blit(score_text, score_rect)
+            
+            # Draw buttons
+            [b.draw() for b in self.buttons["music_game_over"]]
+
         elif self.state == "battle":
             self.battle_mode.draw()
 
@@ -861,7 +897,7 @@ class Game:
                                 return
                         if t.feedback==COLS['r']:
                             pts = self.guess
-                            self.scores.append(pts); self.score+=pts; self.state="score_table"
+                            self.scores.append(pts); self.score+=pts; self.state="music_game_over"
                         break
         elif s=="memory_start":
             if self.buttons["memory_start"][0].hit(pos): self.start_memory_round()
@@ -909,6 +945,12 @@ class Game:
                 if not self.music_started: start_music(); self.music_started = True; self.music_playing = True; self.music_paused = False
                 elif self.music_paused: unpause_music(); self.music_playing = True; self.music_paused = False
                 else: pause_music(); self.music_playing = False; self.music_paused = True
+        elif s=="music_game_over":
+            if self.buttons["music_game_over"][0].hit(pos):  # PLAY AGAIN
+                self.reset()
+                self.setup_music()
+            elif self.buttons["music_game_over"][1].hit(pos):  # QUIT
+                self.state="menu"; self.ensure_music_state()
         elif s=="battle":
             self.battle_mode.handle_click(pos)
 
@@ -920,6 +962,13 @@ class Game:
                 for idx in self.mem_seq: self.memory_tiles[idx].vis=True; self.memory_tiles[idx].start_rot()
             else:
                 self.state="memory_guessing"; self.timer=time.time()
+        elif self.state=="guessing_phase":
+            # Check for timeout in guessing phase
+            tlim=20+self.round*3; left=max(0,tlim-(time.time()-self.timer))
+            if left <= 0:
+                # Time's up - end the game
+                pts = self.guess
+                self.scores.append(pts); self.score+=pts; self.state="music_game_over"
         elif self.state == "battle":
             self.battle_mode.update()
 
