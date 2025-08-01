@@ -149,7 +149,6 @@ class BattleMode:
         self.battle_timer = 0
         self.battle_flashing = False
         self.battle_clicks = []
-        self.battle_click_results = []  # Track correct/wrong clicks for visual feedback
         self.battle_anim = 0
         self.battle_last_result = ""
         self.pspeed_bonus = 0
@@ -260,38 +259,20 @@ class BattleMode:
         screen.blit(os, os_rect)
 
         gx,gy=120,260
-        cell_sz = 67  # Increased from 56px by ~20%
-        grid_img_sz = 58  # Increased from 48px by ~20%
+        cell_sz = 56
+        grid_img_sz = 48
         for i in range(16):
             x=gx+(i%4)*cell_sz*1.2; y=gy+(i//4)*cell_sz*1.2
             rect=pygame.Rect(x,y,cell_sz,cell_sz)
             pygame.draw.rect(screen,COLS['lpink'],rect, border_radius=8)
             pygame.draw.rect(screen,COLS['blk'],rect,2, border_radius=8)
-            
-            # Show images during flashing phase
             if self.battle_flashing and self.battle_grid[i] is not None:
                 img_to_draw = self.battle_grid[i]
                 img_scaled = pygame.transform.scale(img_to_draw, (grid_img_sz,grid_img_sz))
                 img_rect = img_scaled.get_rect(center=rect.center)
                 screen.blit(img_scaled, img_rect)
-            # Show images and highlights when clicked
             elif self.battle_phase=="click" and i in self.battle_clicks:
-                # Determine if this click was correct or incorrect
-                click_idx = self.battle_clicks.index(i)
-                if click_idx < len(self.battle_click_results):
-                    is_correct = self.battle_click_results[click_idx]
-                    # Show red or green highlight
-                    highlight_color = COLS['g'] if is_correct else COLS['r']
-                    pygame.draw.rect(screen, highlight_color, rect, 4, border_radius=8)
-                    # Show the image that was clicked
-                    if self.battle_grid[i] is not None:
-                        img_to_draw = self.battle_grid[i]
-                        img_scaled = pygame.transform.scale(img_to_draw, (grid_img_sz,grid_img_sz))
-                        img_rect = img_scaled.get_rect(center=rect.center)
-                        screen.blit(img_scaled, img_rect)
-                else:
-                    # Fallback to green highlight if results not tracked yet
-                    pygame.draw.rect(screen,COLS['g'],rect,4, border_radius=8)
+                pygame.draw.rect(screen,COLS['g'],rect,4, border_radius=8)
         gx2,gy2=WIDTH-380,260
         for i in range(16):
             x=gx2+(i%4)*cell_sz*1.2; y=gy2+(i//4)*cell_sz*1.2
@@ -305,11 +286,11 @@ class BattleMode:
                 screen.blit(img_scaled, img_rect)
         self.quit_btn.draw()
 
-        # Show result text in a smaller font, centered better
+        # Show result text in a smaller font, positioned between grids and QUIT
         if self.battle_phase=="result":
             msg_y = HEIGHT - 120
             color = COLS['g'] if self.result_text.startswith("YOU WIN") else COLS['r'] if self.result_text.startswith("YOU LOSE") else COLS['lpink']
-            t_msg = F.render(self.result_text,1,color)  # Changed from F_MED to F for smaller font
+            t_msg = F_MED.render(self.result_text,1,color)
             msg_rect = t_msg.get_rect(center=(WIDTH//2,msg_y))
             screen.blit(t_msg, msg_rect)
         if self.battle_phase=="ready" and self.battle_round==0:
@@ -401,7 +382,6 @@ class BattleMode:
         self.battle_grid, self.battle_targets = self.make_grid(self.battle_player, avatars, self.battle_round)
         self.battle_grid_ai, self.battle_ai_targets = self.make_grid(self.battle_player, avatars, self.battle_round)
         self.battle_clicks = []
-        self.battle_click_results = []  # Clear click results for new round
         self.ai_clicks = []
         self.player_time = None
         self.ai_time = None
@@ -440,37 +420,24 @@ class BattleMode:
 
     def handle_grid_click(self, pos):
         gx,gy=120,260
-        cell_sz = 67  # Updated to match new size
+        cell_sz = 56
         for i in range(16):
             x=gx+(i%4)*cell_sz*1.2; y=gy+(i//4)*cell_sz*1.2
             rect=pygame.Rect(x,y,cell_sz,cell_sz)
             if rect.collidepoint(pos) and i not in self.battle_clicks:
                 if len(self.battle_clicks) < self.avatars_this_round:
                     self.battle_clicks.append(i)
-                    
-                    # Track if this click was correct or incorrect
-                    is_correct = i in self.battle_targets
-                    self.battle_click_results.append(is_correct)
-                    
                     if i not in self.battle_targets:
-                        # Wrong click - immediately end round
                         self.battle_phase="result"
                         self.player_time = time.time()-self.battle_timer
                         self.result_text = self.make_result_text(mistake=True)
                         self.battle_anim = time.time()
-                        # Play loss sound
-                        if buuuu:
-                            play_snd(buuuu)
                         return
                     if sorted(self.battle_clicks)==sorted(self.battle_targets):
-                        # All avatars found - player wins
                         self.player_time = time.time()-self.battle_timer
                         self.battle_phase="result"
                         self.result_text = self.make_result_text(mistake=False)
                         self.battle_anim = time.time()
-                        # Play win sound
-                        if yupi:
-                            play_snd(yupi)
                         return
 
     def ai_play(self):
@@ -487,7 +454,6 @@ class BattleMode:
                 self.battle_timer = time.time()
                 self.battle_phase="click"
                 self.battle_clicks=[]
-                self.battle_click_results=[]  # Reset click results for new click phase
                 self.ai_done = False
         elif self.battle_phase == "click":
             if self.player_time is not None:
